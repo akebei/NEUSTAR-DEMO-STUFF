@@ -1,4 +1,11 @@
-#!/bin/bash
+#######################################################################################################################
+##  Title: Jboss 7.1 install
+##  Author: Athanasius C. Kebei
+##  Work in Progress
+##  References: 
+#######################################################################################################################
+#!/bin/bash -vvvvv
+
 # Step 1: JDK installation and verification
 yum -y install java-1.6.0-openjdk-devel
 java -version
@@ -73,7 +80,12 @@ cat > /usr/share/jboss-as/standalone/configuration/standalone.xml << EOF
  </interfaces>
 EOF
 
-# 10. Try to Access Jboss Management Interface at http://ipaddress-or-domainname:9990
+# 10. Try to Access Jboss Management Interface at http://ipaddress-or-domainname:8080
 # Mesaage: Your jboss application server is running. However you have not yet added any users to be able to access the admin console.
 # Add an initial Management User (mgmt-users.properties) user:
 cd /usr/share/jboss-as/bin/
+
+
+
+# Still working on this
+
