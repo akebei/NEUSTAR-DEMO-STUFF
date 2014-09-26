@@ -100,13 +100,17 @@ yum-plugin-versionlock
 yum-presto
 
 %post --nochroot
-# Let us enable Active Directory authentication on our new centOS 6 Server. NB: There is a manual portion 
-# where at the command line you type in setup
+# Let us enable Active Directory authentication on our new centOS 6 Server. Check if the necessary packages are install.
+# From the above kickstart they are but, no harm with:
+yum -y install samba-client samba-common samba samba-winbind samba-winbind-clients pam_krb5 krb5-workstation oddjob
 
-# Backup!!! Replace kerberos file with neustar domain info
+# Backup config files that maybe edited!!! 
 cp /etc/krb5.conf > /etc/krb5.conf.preAD
-cat > /etc/krb5.conf << EOF
+cp /etc/samba/smb.conf /etc/samba/smb.conf.preAD
+cp /etc/pam.d/login /etc/pam.d/login.preAD
+cp /etc/pam.d/sudo /etc/pam.d/sudo.preAD
 
+cat > /etc/krb5.conf << EOF
 [logging]
  default = FILE:/var/log/krb5libs.log
  kdc = FILE:/var/log/krb5kdc.log
@@ -130,7 +134,12 @@ cat > /etc/krb5.conf << EOF
   kdc = dc01.neustar.net
   admin_server = dc01.neustar.net
   kdc = dc01.neustar.net
+  
+  [domain_realm]
+ neustar.net = NEUSTAR.NET
+ .neustar.net = NEUSTAR.NET
 EOF
+
 # Join client server to AD authentication with admin user superme and password Afunde@21
 /usr/bin/net join -w NEUSTAR -S dc01.neustar.net -U superme
 Afunde@21
@@ -139,12 +148,17 @@ Afunde@21
 echo -e 'session    required  pam_mkhomedir.so skel=/etc/skel/ umask=0022' >> /etc/pam.d/sshd
 echo -e 'session    optional  pam_oddjob_mkhomedir.so umask=0022 skel=/etc/skel' >> /etc/pam.d/system-auth
 
-cp /etc/pam.d/login /etc/pam.d/login.bu
-cp /etc/pam.d/sudo /etc/pam.d/sudo.bu
 cp /etc/pam.d/sshd /etc/pam.d/login
-
 cp /etc/pam.d/sshd /etc/pam.d/sudo
 
+
+# Replace some lines in the /etc/samba/smb.conf or manually make the entry replace the entire file 
+cat >> /etc/samba/smb.conf << EOF 
+winbind use default domain = true
+template homedir = /home/WASELINUX/%U
+EOF 
+
+# Create /home/Neustar on newly created server and enable persistence accross reboots of the following services 
 mkdir /home/NEUSTAR
 chmod 711 /home/NEUSTAR
 chkconfig oddjobd on
@@ -159,17 +173,13 @@ echo 'nathaniel ALL=(ALL) ALL' >> /etc/sudoers
 /usr/sbin/useradd asohrad
 /usr/sbin/useradd nathaniel
 
-# Join client server to our spacewalk server or Redhat Network Server for centralized patching via web 
-
-# ui
+# Join client server to our spacewalk server or Redhat Network Server for centralized patching via web ui. Create
+# dir old and move local repos into it
 cd /etc/yum.repos.d && mkdir old && mv * old
-# Create Repo for CentOS 5 and 6 spacewalk-clients by installing client repos
-rpm -Uvh http://yum.spacewalkproject.org/2.0-client/RHEL/5/x86_64/spacewalk-client-repo-2.0-
 
-3.el5.noarch.rpm
-rpm -Uvh http://yum.spacewalkproject.org/2.0-client/RHEL/6/x86_64/spacewalk-client-repo-2.0-
-
-3.el6.noarch.rpm
+# Create Repo for CentOS 5 and 6 spacewalk-clients by installing spacewalk-client repos
+rpm -Uvh http://yum.spacewalkproject.org/2.0-client/RHEL/5/x86_64/spacewalk-client-repo-2.0-3.el5.noarch.rpm
+rpm -Uvh http://yum.spacewalkproject.org/2.0-client/RHEL/6/x86_64/spacewalk-client-repo-2.0-3.el6.noarch.rpm
 
 # EPEL Repos
 # EPEL 5
@@ -181,14 +191,10 @@ echo 'BASEARCH=$(uname -i)' >> /etc/yum/repos.d/epel.repo
 rpm -Uvh http://dl.fedoraproject.org/pub/epel/6/x86_64/epel-release-6-8.noarch.rpm 
  
 # Install client packages:									
-
-		        
 yum install rhn-client-tools rhn-check rhn-setup rhnsd m2crypto yum-rhn-plugin
 
 # Register client to Neustar spacewalk server or Redhat Network Satellite Server
-rhnreg_ks --serverUrl=http://spacewalker1.neustar.net/XMLRPC --activationkey=1-
-
-a81b2223414336d70a007c39f6f2b7f3 
+rhnreg_ks --serverUrl=http://spacewalker1.neustar.net/XMLRPC --activationkey=1-a81b2223414336d70a007c39f6f2b7f3 
 
 
 #Automate updates to client
@@ -196,8 +202,7 @@ yum -y install osad python-haslib
 cd /usr/share/rhn/ && wget https://spacewalker1.neustar.net/pub/RHN-ORG-TRUSTED-SSL-CERT
 echo  'osa_ssl_cert = /usr/share/rhn/RHN-ORG-TRUSTED-SSL-CERT' >> /etc/sysconfig/rhn/osad.conf
 
-chkconfig osad on
-service osad start
+chkconfig osad on && service osad start
 
 # Add repo GPG public keys for package updates
 wget http://download.fedora.redhat.com/pub/epel/RPM-GPG-KEY-EPEL
