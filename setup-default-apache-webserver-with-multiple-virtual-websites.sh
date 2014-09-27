@@ -1,16 +1,18 @@
 #!/bin/bash -vvvv
-######################################################################################
-# Title: Install and configure Apache webserver to host multiple virtual Named-hosts websites
+#########################################################################################################################
+# Title: Install and configure Apache webserver to host multiple virtual Named-hosts websites 
 #
 # Author: Athanasius C. Kebei
+#
 # References:
 # https://access.redhat.com/discussions/668813
 # http://www.tecmint.com/apache-ip-based-and-name-based-virtual-hosting/
-######################################################################################
+########################################################################################################################
 
 yum -y install httpd elinks
-chkconfig httpd on && service httpd start
 lokkit --service http                                  # opens port 80, to use secure https lokkit --service https
+chkconfig httpd on && service httpd start
+
 firefox http://localhost                               # Loads default apache webpage in an X-windows env. 
 elinks http://localhost                                # From a ssh env
 
@@ -23,7 +25,7 @@ cat > /etc/hosts << EOF
 ::1  localhost6.localdomain     localhost6
 EOF
                                                         
-                                                         # craete root DocumentRoot directories for websites
+                                                         # creatte root DocumentRoot directories for websites
 mkdir -p /var/www/html/neustar1.net
 mkdir -p /var/www/html/neustar2.net
 ls -Zd /var/www/html                                     # Take quick look at permissions, ownership (only root with rw)
@@ -55,22 +57,22 @@ NameVirtualHost neustar2.net:80
 EOF
 
 service httpd configtest                                     # Return should be syntax ok, iter alias
-service httpd reload
+service httpd restart
 
                                                              # Create webpage initial content: index.html for websites
 cat > /var/www/html/neustar1.net/index.html << EOF
-Hyer world, welcome to neustar1!!!
+Hyer world, welcome to neustar1.net!!!
 EOF
 
 cat > /var/www/html/neustar2.net/ndex.html << EOF
-Hyer world, welcome back to neustar2!!!
+Hyer world, welcome back to neustar2.net!!!
 EOF
 
                                                               # Testing time with web browsers
-firefox http://neustar1.net
-firefox http://neustar2.net
-elinks http://neustar1.net
-elinks http://neustar2.net                                    # Voila!
+firefox http://neustar1.net                                   # or elinks http://neustar1.net
+firefox http://neustar2.net                                   # or elinks http://neustar2.net
+                                                              
+                                                              # Voila!
 
 
 
