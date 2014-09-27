@@ -1,8 +1,11 @@
 #/bin/bash -vvvvv
 #########################################################################################################################
+# Title: Nfs-Client-enable 
+# Author: Athanasius C. Kebei
+# References: 
 # https://access.redhat.com/documentation/en-US/Red_Hat_Enterprise_Linux/6/html/Storage_Administration_Guide/ch-nfs.html
-#
 ##########################################################################################################################
+# VERSION WITH EXPLANATIONS
 # 1. Install NFS Client package
    yum -y install nfs-utils
 # 2. Start NFS service in client and enable across reboots         
@@ -37,13 +40,14 @@ cd /home/kickstart && ls
 # test1 test2   testfile                         
 # Success!! Files and directories created in the server or client auto-sync to and from (client-server-client).
 
-# 15. To have the shares automounted on both client add an entry to /etc/fstab,  reboot nfsclient and verify 
+# 15. To have the shares permanently mounted on client add an entry to /etc/fstab,  reboot nfsclient and verify 
 # with the mount command:
 
 cat >> /etc/fstab << EOF                                 
 192.168.1 23:/home/kickstart     /mnt/nfs     nfs    _inetdev   0 0
 EOF
 mount
+
 
 ########################################################################################################################
 #  nfs-client-server script clean
@@ -59,7 +63,7 @@ cd /nfshares
 mkdir /testfile && touch test1 test2
 
 cat > test1 << EOF
-Hyer, we should have a meeting
+Hyer, we should have a meeting!
 EOF
 
 cat >> /etc/fstab << EOF                                 
