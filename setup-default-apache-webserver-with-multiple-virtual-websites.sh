@@ -1,5 +1,5 @@
 #!/bin/bash -vvvv
-#########################################################################################################################
+################################################################################################################################
 # Title: Install and configure Apache webserver to host multiple virtual Named-hosts websites 
 #
 # Author: Athanasius C. Kebei
@@ -7,7 +7,7 @@
 # References:
 # https://access.redhat.com/discussions/668813
 # http://www.tecmint.com/apache-ip-based-and-name-based-virtual-hosting/
-########################################################################################################################
+################################################################################################################################
 
 yum -y install httpd elinks
 lokkit --service http                                  # opens port 80, to use secure https lokkit --service https
@@ -25,7 +25,7 @@ cat > /etc/hosts << EOF
 ::1  localhost6.localdomain     localhost6
 EOF
                                                         
-                                                         # creatte root DocumentRoot directories for websites
+                                                         # create root DocumentRoot directories for websites
 mkdir -p /var/www/html/neustar1.net
 mkdir -p /var/www/html/neustar2.net
 ls -Zd /var/www/html                                     # Take quick look at permissions, ownership (only root with rw)
@@ -40,6 +40,7 @@ cat >> /etc/httpd/conf/httpd.conf << EOF
 NameVirtualHost neustar1.net:80
 
 <VirtualHost neustar1.net:80>
+    ServerAdmin webmaster@neustar1.net
     DocumentRoot /var/www/html/neustar1.net
     ServerName neustar1.net
     ErrorLog logs/neustar1.net-error_log
@@ -49,6 +50,7 @@ NameVirtualHost neustar1.net:80
 NameVirtualHost neustar2.net:80
 
 <VirtualHost neustar2.net:80>
+    ServerAdmin webmaster@neustar2.net
     DocumentRoot /var/www/html/neustar2.net
     ServerName neustar2.net
     ErrorLog logs/neustar2.net-error_log
@@ -56,7 +58,7 @@ NameVirtualHost neustar2.net:80
 </VirtualHost>
 EOF
 
-service httpd configtest                                     # Return should be syntax ok, iter alias
+service httpd configtest                                     # Return should be syntax ok, iter alias. http -t
 service httpd restart
 
                                                              # Create webpage initial content: index.html for websites
