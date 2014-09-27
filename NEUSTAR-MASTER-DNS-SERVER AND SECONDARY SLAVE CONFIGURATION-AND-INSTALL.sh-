@@ -1,0 +1,266 @@
+#!/bin/bash -vvvvv
+#########################################################################################################################
+# Author: Athanasius C. Kebei
+#Title: Neustar.net Master DNS Server Installation and Confugartion
+#
+# References:
+# https://access.redhat.com/documentation/en-US/Red_Hat_Enterprise_Linux/6/html/Deployment_Guide/ch-DNS_Servers.html
+# http://www.unixmen.com/dns-server-installation-step-by-step-using-centos-6-3/
+# http://www.server-world.info/en/note?os=CentOS_6&p=dns&f=6 
+# http://ostechnix.wordpress.com/2013/12/15/setup-dns-server-step-by-step-in-centos-6-3-rhel-6-3-scientific-linux-6-3-3/
+##########################################################################################################################
+# Install Primary(Master) DNS Server packages
+yum install bind bind-utils -y
+
+#########################################################################################################################
+# Backp main config files that could/maybe modified
+##########################################################################################################################
+cp /etc/named.conf /etc/named.conf.predns
+cp /etc/rndc.conf /etc/rndc.conf.predns
+cp /etc/rndc.key /etc/rndc.key.pedns
+cp /etc/sysconfig/named /etc/sysconfig/named.predns
+
+echo 'OPTIONS="-4"' >> /etc/sysconfig/named
+# set if you don't use IPv6 ( if use, don't set it )
+
+
+#########################################################################################################################
+# Replace origigal named.conf with the modified values as follows
+#########################################################################################################################
+
+cat >> /etc/named.conf << EOF 
+//
+// named.conf
+//
+// Provided by Red Hat bind package to configure the ISC BIND named(8) DNS
+// server as a caching only nameserver (as a localhost DNS resolver only).
+//
+// See /usr/share/doc/bind*/sample/ for example named configuration files.
+//
+options {
+listen-on port 53 { 127.0.0.1; 192.168.1.53;};                              ## Master DNS IP ##
+#listen-on-v6 port 53 { ::1; };                                             ## Uncomment if neustar uses ipv6
+directory           "/var/named";
+dump-file           "/var/named/data/cache_dump.db";
+	statistics-file     "/var/named/data/named_stats.txt";
+	memstatistics-file  "/var/named/data/named_mem_stats.txt";
+allow-query         { localhost; 192.168.1.0/24; };                          ## IP Range ##
+allow-transfer{ localhost; 192.168.1.19; };                                  ## Slave DNS Server IP ##  
+recursion yes;
+dnssec-enable yes;
+dnssec-validation yes;
+dnssec-lookaside auto;
+/* Path to ISC DLV key */
+bindkeys-file "/etc/named.iscdlv.key";
+managed-keys-directory "/var/named/dynamic";
+};
+
+logging {
+        channel default_debug {
+                file "data/named.run";
+                severity dynamic;
+        };
+};
+
+zone "." IN {
+type hint;
+file "named.ca";
+ };
+
+zone"neustar.net" IN {
+type master;
+file "forward.neustar";
+allow-update { none; };
+ };
+
+zone"1.168.192.in-addr.arpa" IN {
+type master;
+file "reverse.neustar";
+allow-update { none; };
+ };
+include "/etc/named.rfc1912.zones";
+include "/etc/named.root.key";
+
+# What does all these stand for?
+# allow-query               ? query range you permit
+# allow-transfer	    ? the range you permit to transfer zone info
+# recursion		    ? allow or not to search recursively
+# view "internal" { ** };   ? write for internal definition
+# view "external" { ** };   ? write for external definition
+
+# For How to write for reverse resolving, Write network address reversely like below.
+# 192.168.1.0/24
+# network address	    ? 192.168.1.0
+# range of network	    ? 192.168.1.0 - 192.168.1.255
+# how to write		    ? 0.0.192.in-addr.arpa
+
+# 192.16.0.80/29
+# network address	    ? 172.16.0.80
+# range of network	     ? 192.168.1.19 - 172.16.0.87
+# how to write		     ? 20.1.168.192.in-addr.arpa
+EOF
+
+
+########################################################################################################################
+#2 Create Zone files
+#  Create new Forward Zone
+########################################################################################################################
+
+cat > /var/named/forward.neustar << EOF
+$TTL 86400
+@    IN  SOA     masterdns.neustar.net. root.neustar.net. (
+         2011071001  ;Serial
+         3600        ;Refresh
+         1800        ;Retry
+         604800      ;Expire
+         86400       ;Minimum TTL
+)
+
+@        IN  	     NS      masterdns.neustar.net.
+@        IN  	     NS      2ndrydns.neustar.net.masterdns. 
+@	 IN   A	       192.168.1.53
+@	 IN   A	       192.168.1.19
+masterdns    IN	   A   192.168.1.53
+2ndrydns     IN    A   192.168.1.19
+EOF
+
+#######################################################################################################################
+# 3. Create new Reverse Zone
+#######################################################################################################################
+
+cat > /var/named/reverse.neustar << EOF
+$TTL  86400
+@     IN   SOA     masterdns.neustar.net. root.neustar.net. (
+          2011071001  ;Serial
+          3600        ;Refresh
+          1800        ;Retry
+          604800      ;Expire
+          86400       ;Minimum TTL
+)
+@	  IN  	NS      masterdns.neustar.net.
+@ 	  IN  	NS      2ndrydns.neustar.net.
+@	  IN    PTR	waselinux.net        
+masterdns       IN    A   192.168.1.53
+2ndrydns 	IN    A   192.168.1.19
+53      IN  PTR       masterdns.neustar.net.
+19      IN  PTR       2ndrydns.neustar.net.
+EOF
+
+########################################################################################################################
+#4. Start the bind service and enable persistence accross reboots
+########################################################################################################################
+chkconfig named on && service named start
+
+
+########################################################################################################################
+#5.  Allow DNS Server through iptables. Open tcp and udp ports 53, save changes and restart iptables
+########################################################################################################################
+lokkit --port 53:udp
+lokkit --port 53:tcp
+service iptables save && service iptables restart
+
+#######################################################################################################################
+#6.Test syntax errors of DNS configuration and zone files Check DNS Config file. Manually run these commands rather 
+#than including in this scripts
+#######################################################################################################################
+named-checkconf /etc/named.conf
+named-checkconf /etc/named.rfc1912.zones
+
+########################################################################################################################
+#7. Check zone files 
+########################################################################################################################
+named-checkzone neustar.net /var/named/forward.neustar.net
+named-checkzone neustar.net /var/named/reverse.neustar.net 
+
+########################################################################################################################
+#8. Test DNS Server
+#######################################################################################################################
+dig masterdns.neustar.net 
+dig -x 192.168.1.53
+nslookup masterdns
+
+########################################################################################################################
+#9. Add the DNS Server details to all servers and desktops. Start with the masterdns. NetworkManager will mangle 
+# this up, so stop it now and accross the reboots
+#########################################################################################################################
+cat > /etc/resolv.conf << EOF
+domain neustar.net
+search neustar.net
+nameserevr 192.168.1.53
+nameserver 192.168.1.19
+nameserver 208.67.222.222
+nameserver 8.8.8.8
+EOF
+chkconfig NetworkManager off && service NetworkManager stop
+
+########################################################################################################################
+# Tests should give you results like teh following
+########################################################################################################################
+# dig @localhost www.neustar.com
+
+; <<>> DiG 9.8.2rc1-RedHat-9.8.2-0.17.rc1.el6_4.6 <<>> @localhost www.neustar.com
+; (2 servers found)
+;; global options: +cmd
+;; Got answer:
+;; ->>HEADER<<- opcode: QUERY, status: NOERROR, id: 54095
+;; flags: qr rd ra; QUERY: 1, ANSWER: 2, AUTHORITY: 6, ADDITIONAL: 11
+
+;; QUESTION SECTION:
+;www.neustar.com.		IN	A
+
+;; ANSWER SECTION:
+www.neustar.com.	300	IN	CNAME	neustar.com.
+neustar.com.		300	IN	A	107.21.46.236
+
+;; AUTHORITY SECTION:
+neustar.com.		172799	IN	NS	pdns196.ultradns.info.
+neustar.com.		172799	IN	NS	pdns196.ultradns.org.
+neustar.com.		172799	IN	NS	pdns196.ultradns.com.
+neustar.com.		172799	IN	NS	pdns196.ultradns.net.
+neustar.com.		172799	IN	NS	pdns196.ultradns.biz.
+neustar.com.		172799	IN	NS	pdns196.ultradns.co.uk.
+
+;; ADDITIONAL SECTION:
+pdns196.ultradns.com.	53240	IN	A	156.154.64.196
+pdns196.ultradns.com.	53240	IN	AAAA	2001:502:f3ff::e8
+pdns196.ultradns.net.	53240	IN	A	156.154.65.196
+pdns196.ultradns.net.	53240	IN	AAAA	2610:a1:1014::e8
+pdns196.ultradns.org.	58541	IN	A	156.154.67.196
+pdns196.ultradns.org.	58541	IN	AAAA	2001:502:4612::e8
+pdns196.ultradns.info.	58541	IN	A	156.154.68.196
+pdns196.ultradns.info.	58541	IN	AAAA	2610:a1:1016::e8
+pdns196.ultradns.biz.	7199	IN	A	156.154.66.196
+pdns196.ultradns.biz.	7199	IN	AAAA	2610:a1:1015::e8
+pdns196.ultradns.co.uk.	56841	IN	A	156.154.69.196
+
+;; Query time: 688 msec
+;; SERVER: 127.0.0.1#53(127.0.0.1)
+;; WHEN: Fri Sep 26 21:41:10 2014
+;; MSG SIZE  rcvd: 503
+
+
+########################################################################################################################
+#                                End                                                                                   #
+########################################################################################################################
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
