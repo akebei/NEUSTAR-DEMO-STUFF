@@ -1,9 +1,15 @@
+#!/bin/bash
 #########################################################################################################################
+# Author: Athanasius C. Kebei
+#Title: Slave DNS Server Installation and Setup 
+#
+# References:
+# https://access.redhat.com/documentation/en-US/Red_Hat_Enterprise_Linux/6/html/Deployment_Guide/ch-DNS_Servers.html
+# http://www.server-world.info/en/note?os=CentOS_6&p=dns&f=6
 # http://www.unixmen.com/dns-server-installation-step-by-step-using-centos-6-3/
 # http://www.server-world.info/en/note?os=CentOS_6&p=dns&f=6
+# http://ostechnix.wordpress.com/2013/12/15/setup-dns-server-step-by-step-in-centos-6-3-rhel-6-3-scientific-linux-6-3-3/
 ########################################################################################################################
-
-#!/bin/bash
 yum -y install bind bind-utils
 cp /etc/named.conf /etc/named.conf.predns
 
@@ -17,13 +23,13 @@ cat > /etc/named.conf << EOF
 // See /usr/share/doc/bind*/sample/ for example named configuration files.
 //
 options {
-listen-on port 53 { 127.0.0.1; 192.168.1.19; };    ## Slve DNS IP ##      
+listen-on port 53 { 127.0.0.1; 192.168.1.19; };                                   ## Slave DNS IP ##      
 listen-on-v6 port 53 { ::1; };
 directory "/var/named";
 dump-file "/var/named/data/cache_dump.db";
         statistics-file "/var/named/data/named_stats.txt";
         memstatistics-file "/var/named/data/named_mem_stats.txt";
-allow-query     { localhost; 192.168.1.0/24; };      ## IP Range ##   
+allow-query     { localhost; 192.168.1.0/24; };                                   ## IP Range ##   
 recursion yes;
 dnssec-enable yes;
 dnssec-validation yes;
@@ -42,14 +48,14 @@ zone "." IN {
 type hint;
 file "named.ca";
 };
-zone"waselinux.net" IN {
+zone"neustar.net" IN {
 type slave;
-file "slaves/waselinux.fwd";
+file "slaves/neustar.fwd";
 masters { 192.168.1.53; };
 };
 zone"1.168.192.in-addr.arpa" IN {
 type slave;
-file "slaves/waselinux.rev";
+file "slaves/neustar.rev";
 masters { 192.168.1.19; };
 };
 include "/etc/named.rfc1912.zones";
@@ -59,8 +65,8 @@ EOF
 chkconfig named on && service named start
 
 # Tests
-ls /var/named/slaves/waselinux.fwd
-cat /var/named/slaves/waselinux.fwd
+ls /var/named/slaves/neustar.fwd
+cat /var/named/slaves/neustar.fwd
 
 
 #7.Test syntax errors of DNS configuration and zone files
@@ -69,19 +75,19 @@ named-checkconf /etc/named.conf
 named-checkconf /etc/named.rfc1912.zones
 
 # Check zone files 
-named-checkzone waselinux.net /var/named/fwd.waselinux.net
-named-checkzone waselinux.net /var/named/rev.waselinux.net 
+named-checkzone neustar.net /var/named/fwd.neustarx.net
+named-checkzone neustar.net /var/named/rev.neustar.net 
 
 # Test DNS Server: 3 methods dig hostname, dig ip, nslookup:
-dig masterdns.waselinux.net
+dig masterdns.neustar.net
 dig -x 192.168.1.53
 dig -x 192.168.1.19
 nslookup masterdns
 nslookup 2ndrydns
 
 cat > /etc/resolv.conf << EOF
-domain waselinux.net
-search waselinux.net
+domain neustar.net
+search neustar.net
 nameserevr 192.168.1.53
 nameserver 192.168.1.19
 nameserver 208.67.222.222
