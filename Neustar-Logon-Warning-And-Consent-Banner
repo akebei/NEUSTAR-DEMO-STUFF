@@ -1,0 +1,35 @@
+# Create a default Login banner
+cat > /etc/motd /etc/issue /etc/issue.net /etc/gconf/gconf.xml.mandatory << EOF
+                         NEUSTAR LOgin WARNING AND CONSENT BANNER
+YOU ARE ACCESSING A NEUSTAR INFORMATION SYSTEM (IS) THAT IS PROVIDED FOR NEUSTAR AUTHORIZED USE ONLY.
+By using this IS (which includes any device attached to this IS), you consent to the following conditions:
+
+Neustar routinely intercepts and monitors communications on this IS for purposes including, but not limited to, 
+penetration testing, COMSEC monitoring, network operations and defense, personnel misconduct (PM), law enforcement (LE), and counterintelligence (CI) investigations.
+
+At any time, Neustar may inspect and seize data stored on this IS.Communications using, or data stored on,this IS are not private, are subject to routine monitoring, interception, and search, and may be disclosed or used for any of Neustar authorized purpose.
+
+This IS includes security measures (e.g., authentication and access controls) to protect Neustar 
+interests--not for your personal benefit or privacy.
+
+Notwithstanding the above, using this IS does not constitute consent to PM, LE or CI investigative searching or monitoring of the content of privileged communications, or work product, related to personal representation or services by attorneys, psychotherapists, or clergy, and their assistants. Such 
+communications and work product are private and confidential. See User Agreement for details.
+    
+By clicking ok, you affirm that you have read and consent to all of these.
+EOF
+
+cat >> /etc/gdm/Init/Default << EOF 
+## Display a login banner:
+zenity --text-info --filename=/etc/motd --width=900 --height=700 --title="LOGIN WARNING-AND-CONSENT-BANNER"
+EOF
+
+# Enable banner for ssh
+cat >> /etc/ssh/sshd_config << EOF
+Banner /etc/motd
+EOF
+
+service sshd restart && chkconfig sshd on
+# To see this banner pop up instantly in an X-windows env, copy and paste the following line at the command line
+#zenity --text-info --filename=/etc/motd --width=900 --height=700 --title=LOGIN WARNING-AND-CONSENT-BANNER
+# To see the banner in an ssh env open a new terminal and login, if the banner does not pop-up, then do: service sshd restart
+# End
