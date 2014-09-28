@@ -1,4 +1,19 @@
-# Create a default Login banner
+#!/bin/bash
+# Title: Setup Login banners on GUI and ssh sessions on/to all servers
+#
+# Author: Athanasius C. Kebei
+# References:
+# https://access.redhat.com/documentation/en-US/Red_Hat_Enterprise_Linux/7/html/Desktop_Migration_and_Administration_Guide
+#/customizing-login-screen.html
+
+# change over to “gdm” to make the gnome changes
+su -s /bin/sh gdm
+
+# Enable the banner
+gconftool-2 –direct –config-source= xml:readwrite:$HOME/.gconf –type bool –set /apps/gdm/simple-greeter/banner_message_enable true
+# Set the banner
+gconftool-2 –direct –config-source=xml:readwrite:$HOME/.gconf -t string -s /apps/gdm/simple-greeter /banner_message_text ‘/etc/motd’
+
 cat > /etc/motd /etc/issue /etc/issue.net /etc/gconf/gconf.xml.mandatory << EOF
                          NEUSTAR LOgin WARNING AND CONSENT BANNER
 YOU ARE ACCESSING A NEUSTAR INFORMATION SYSTEM (IS) THAT IS PROVIDED FOR NEUSTAR AUTHORIZED USE ONLY.
@@ -18,6 +33,7 @@ communications and work product are private and confidential. See User Agreement
 By clicking ok, you affirm that you have read and consent to all of these.
 EOF
 
+# Enable pesistence accross reboots
 cat >> /etc/gdm/Init/Default << EOF 
 ## Display a login banner:
 zenity --text-info --filename=/etc/motd --width=900 --height=700 --title="LOGIN WARNING-AND-CONSENT-BANNER"
@@ -32,4 +48,42 @@ service sshd restart && chkconfig sshd on
 # To see this banner pop up instantly in an X-windows env, copy and paste the following line at the command line
 #zenity --text-info --filename=/etc/motd --width=900 --height=700 --title=LOGIN WARNING-AND-CONSENT-BANNER
 # To see the banner in an ssh env open a new terminal and login, if the banner does not pop-up, then do: service sshd restart
+
+
+# Remove User List from Login Screen. Helpful to prevent an authorized user from using usernames to guess password to gain 
+# access
+#su -s /bin/bash gdm
+gconftool-2 --type bool --set /apps/gdm/simple-greeter/disable_user_list true
+
+# Verify the command is active
+gconftool-2 --get /apps/gdm/simple-greeter/disable_user_list
+
+# Put Company logo as login background
+# Back the default.xml
+cp /usr/share/background/default.xml /usr/share/background/default.xml.prelogo
+mv neustarlogo.png /usr/share/background/
+
+cat >> /usr/share/background/default.xml << EOF
+<background>
+ <starttime>
+ <year>2014</year>
+ <month>09</month>
+ <day>25</day>
+ <hour>10</hour>
+ <minute>00</minute>
+ <second>00</second>
+ </starttime>
+
+<static>
+ <duration>10000000000.0</duration>
+ <file>
+ <size width=”1280″ height=”1024″>/usr/share/backgrounds/neustarlogo.png</size>
+ <size width=”1920″ height=”1200″>/usr/share/backgrounds/neustarlogo.png</size>
+ <size width=”2048″ height=”1536″>/usr/share/backgrounds/neustarlogo.png</size>
+ </file>
+ </static>
+ </background>
+ EOF
+reboot
+
 # End
