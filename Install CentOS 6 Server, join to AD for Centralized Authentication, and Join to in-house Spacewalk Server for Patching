@@ -1,8 +1,10 @@
 #######################################################################################################################
-# Title: Install CentOS 6 Server (or any Rhel-based distro), join it to Active Directory for Centralized Authentication#, and Join to in-house Spacewalk Server for Patching
+# Title: Install CentOS 6 Server (or any Rhel-based distro), join it to Active Directory for Centralized Authentication#, and  #  Join to in-house Spacewalk Server for Patching
 #
 # Author:ATHANASIUS C. KEBEI
-# REFERENCES: http://dl.fedoraproject.org
+# REFERENCES: 
+# http://www.redhat.com/rhecm/rest-rhecm/jcr/repository/collaboration/jcr:system/jcr:versionStorage/ae40084d0a052601783f1ea4271# 5cdef/26/jcr:frozenNode/rh:resourceFile
+# http://dl.fedoraproject.org
 # http://www.centos.org/docs/5/html/Installation_Guide-en-US/ch-kickstart2.html
 # http://download.fedora.redhat.com
 #######################################################################################################################
@@ -10,7 +12,7 @@
 #platform=x86, AMD64, or Intel EM64T
 firewall --enabled --http --ssh --service=http,ssh
 install
-# Use NFS installation media Kickstart file lo#cation
+# Use NFS installation media Kickstart file location
 nfs --server=192.168.1.23 --dir=/nfs/CentOS6.5
 rootpw --iscrypted $1$EbgAo7h8$waT9gBpTPDmBz1t6OPK1x1
 user --name=akebei_admin --password=!C0ntro1
@@ -93,7 +95,7 @@ yum-plugin-versionlock
 yum-presto
 
 %post --nochroot
-# Let us enable Active Directory authentication on our new centOS 6 Server. Check if the necessary packages are install.
+# Let us enable Active Directory authentication on our new centOS 6 Server. Check if the necessary packages are installed.
 # From the above kickstart they are but, no harm with:
 yum -y install samba-client samba-common samba samba-winbind samba-winbind-clients pam_krb5 krb5-workstation oddjob
 
@@ -145,7 +147,7 @@ cp /etc/pam.d/sshd /etc/pam.d/login
 cp /etc/pam.d/sshd /etc/pam.d/sudo
 
 
-# Replace some lines in the /etc/samba/smb.conf or manually make the entry replace the entire file 
+# Replace some lines in the /etc/samba/smb.conf manually make the entry or replace the entire file 
 cat >> /etc/samba/smb.conf << EOF 
 winbind use default domain = true
 template homedir = /home/NEUSTAR/%U
@@ -186,16 +188,16 @@ rpm -Uvh http://dl.fedoraproject.org/pub/epel/6/x86_64/epel-release-6-8.noarch.r
 # Install client packages:									
 yum -y install rhn-client-tools rhn-check rhn-setup rhnsd m2crypto yum-rhn-plugin
 
-# Register client to Neustar spacewalk server or Redhat Network Satellite Server
-rhnreg_ks --serverUrl=http://spacewalker1.neustar.net/XMLRPC --activationkey=1-a81b2223414336d70a007c39f6f2b7f3 
-
-
 #Automate updates to client
 yum -y install osad python-haslib
 cd /usr/share/rhn/ && wget https://spacewalker1.neustar.net/pub/RHN-ORG-TRUSTED-SSL-CERT
 echo  -e 'osa_ssl_cert = /usr/share/rhn/RHN-ORG-TRUSTED-SSL-CERT' >> /etc/sysconfig/rhn/osad.conf
-
 chkconfig osad on && service osad start
+
+# Register client to Neustar spacewalk server or Redhat Network Satellite Server and start the update process
+rhnreg_ks --serverUrl=http://spacewalker1.neustar.net/XMLRPC --activationkey=1-a81b2223414336d70a007c39f6f2b7f3 
+
+yum clean all && yum makecache  && yum -y update
 
 # Add repo GPG public keys for package updates
 wget http://download.fedora.redhat.com/pub/epel/RPM-GPG-KEY-EPEL
@@ -210,8 +212,7 @@ rpm --import /etc/pki/rpm-gpg/RPM-GPG-KEY-spacewalk
 wget http://dag.wieers.com/packages/RPM-GPG-KEY.dag.txt
 mv -f RPM-GPG-KEY.dag.txt /etc/pki/rpm-gpg/RPM-GPG-KEY-dag
 rpm --import /etc/pki/rpm-gpg/RPM-GPG-KEY-dag
-rhn_check
-yum clean all && yum makecache  && yum -y update
+
 shutdown -r now
 
 %end
