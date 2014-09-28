@@ -1,3 +1,4 @@
+################################################################################################################################
 #!/bin/bash
 # Title: Setup Login banners on GUI and ssh sessions on/to all servers
 #
@@ -5,6 +6,7 @@
 # References:
 # https://access.redhat.com/documentation/en-US/Red_Hat_Enterprise_Linux/7/html/Desktop_Migration_and_Administration_Guide
 #/customizing-login-screen.html
+################################################################################################################################
 
 # change over to “gdm” to make the gnome changes
 su -s /bin/sh gdm
