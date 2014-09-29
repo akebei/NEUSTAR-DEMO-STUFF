@@ -12,11 +12,11 @@
 su -s /bin/sh gdm
 
 # Enable the banner
-gconftool-2 –direct –config-source= xml:readwrite:$HOME/.gconf –type bool –set /apps/gdm/simple-greeter/banner_message_enable true
+gconftool-2 --direct --config-source= xml:readwrite:$HOME/.gconf --type bool --set /apps/gdm/simple-greeter/banner_message_enable true
 # Set the banner
-gconftool-2 –direct –config-source=xml:readwrite:$HOME/.gconf -t string -s /apps/gdm/simple-greeter /banner_message_text ‘/etc/motd’
+gconftool-2 --direct --config-source=xml:readwrite:$HOME/.gconf -t string -s /apps/gdm/simple-greeter /banner_message_text ‘/etc/motd’
 
-cat > /etc/motd /etc/issue /etc/issue.net /etc/gconf/gconf.xml.mandatory << EOF
+cat > /etc/motd > /etc/issue > /etc/issue.net > /etc/gconf/gconf.xml.mandatory << EOF
                          NEUSTAR LOgin WARNING AND CONSENT BANNER
 YOU ARE ACCESSING A NEUSTAR INFORMATION SYSTEM (IS) THAT IS PROVIDED FOR NEUSTAR AUTHORIZED USE ONLY.
 By using this IS (which includes any device attached to this IS), you consent to the following conditions:
@@ -50,9 +50,10 @@ service sshd restart && chkconfig sshd on
 # To see this banner pop up instantly in an X-windows env, copy and paste the following line at the command line
 #zenity --text-info --filename=/etc/motd --width=900 --height=700 --title=LOGIN WARNING-AND-CONSENT-BANNER
 # To see the banner in an ssh env open a new terminal and login, if the banner does not pop-up, then do: service sshd restart
+# open new terminal, and login as a different user. ssh asorah@cen.neustar.com. The banner will be present before you login.
 
 
-# Remove User List from Login Screen. Helpful to prevent an authorized user from using usernames to guess password to gain 
+# Remove User List from Login Screen. Helpful to prevent an authorized user from using usernames to guess passwords to gain 
 # access
 #su -s /bin/bash gdm
 gconftool-2 --type bool --set /apps/gdm/simple-greeter/disable_user_list true
